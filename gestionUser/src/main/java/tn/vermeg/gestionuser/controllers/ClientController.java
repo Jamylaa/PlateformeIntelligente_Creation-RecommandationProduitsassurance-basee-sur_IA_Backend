@@ -1,63 +1,52 @@
 package tn.vermeg.gestionuser.controllers;
- import com.mongodb.client.internal.ClientSessionClock;
- import org.springframework.http.ResponseEntity;
- import org.springframework.security.access.prepost.PreAuthorize;
- import tn.vermeg.gestionuser.entities.Admin;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import tn.vermeg.gestionproduit.entities.Produit;
 import tn.vermeg.gestionuser.entities.Client;
-import tn.vermeg.gestionuser.entities.Department;
 import tn.vermeg.gestionuser.services.ClientService;
 import org.springframework.web.bind.annotation.*;
-
-        import java.util.List;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/clients")
 @CrossOrigin(origins = "http://localhost:4200")
 public class ClientController {
 
-    private final ClientService clientService;
+        private final ClientService clientService;
+        public ClientController(ClientService clientService) {
+            this.clientService = clientService;}
 
-    public ClientController(ClientService clientService) {
-        this.clientService = clientService;
+         @GetMapping("/produits")
+         public List<Produit> listeProduits() {
+        return clientService.getAllProduits();}
+
+        //  ADMIN only
+        @PreAuthorize("hasRole('ADMIN')")
+        @PostMapping
+        public ResponseEntity<Client> createClient(@RequestBody Client client) {
+            return ResponseEntity.ok(clientService.createClient(client));}
+
+        @PreAuthorize("hasRole('ADMIN')")
+        @GetMapping
+        public ResponseEntity<List<Client>> getAllClients() {
+            return ResponseEntity.ok(clientService.getAllClients());}
+
+        @PreAuthorize("hasAnyRole('ADMIN','CLIENT')")
+        @GetMapping("/{idUser}")
+        public ResponseEntity<Client> getClientById(@PathVariable String idUser) {
+            return ResponseEntity.ok(clientService.getClientById(idUser));}
+
+        @PreAuthorize("hasRole('ADMIN')")
+        @PutMapping("/{idUser}")
+        public ResponseEntity<Client> updateClient(
+                @PathVariable String idUser,
+                @RequestBody Client client) {
+            return ResponseEntity.ok(clientService.updateClient(idUser, client));}
+
+        @PreAuthorize("hasRole('ADMIN')")
+        @DeleteMapping("/{idUser}")
+        public ResponseEntity<String> deleteClient(@PathVariable String idUser) {
+            clientService.deleteClient(idUser);
+            return ResponseEntity.ok("Client supprimé avec succès !");
+        }
     }
-    // 🔒 Seul ADMIN peut créer
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/createClient")
-    public Client createClient(@RequestBody Client client) {
-        return clientService.createClient(client);
-    }
-
-    @GetMapping("/getAllClients")
-    public List<Client> getAllClients() {
-        return clientService.getAllClients();
-    }
-
-    @GetMapping("/getClientById/{idUser}")
-    public Client getClientById(@PathVariable String idUser) {
-        return clientService.getClientById(idUser);
-    }
-
-    //updateclient
-    @PutMapping("/updateClient/{idUser}")
-    public ResponseEntity<Client> updateClient(
-            @PathVariable String idUser,
-            @RequestBody Client client) {
-        Client updatedClient = clientService.updateClient(idUser, client);
-        return ResponseEntity.ok(updatedClient); }
-
-    //delete
-    @DeleteMapping("/deleteClient/{idUser}")
-    public ResponseEntity<String> deleteClient(@PathVariable String idUser) {
-        clientService.deleteClient(idUser);
-        return ResponseEntity.ok("Client supprimé avec succès !");
-    }
-}
-
-//    //update
-//    @PutMapping("/updateClient/{idUser}")
-//    public Client updateClient(@PathVariable String idUser,
-//            @RequestParam String userName, @RequestParam String email,
-//            @RequestParam String password,
-//            @RequestParam int phone, @RequestParam String companyName) {
-//        return clientService.updateClient(idUser, userName, email, password, phone, companyName);
-//    }

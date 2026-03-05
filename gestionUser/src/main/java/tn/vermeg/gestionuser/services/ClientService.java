@@ -1,80 +1,89 @@
 package tn.vermeg.gestionuser.services;
+ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import tn.vermeg.gestionuser.entities.Admin;
+import tn.vermeg.gestionproduit.entities.Produit;
 import tn.vermeg.gestionuser.entities.Client;
+import tn.vermeg.gestionuser.feign.ProduitFeignClient;
 import tn.vermeg.gestionuser.repositories.ClientRepository;
+import java.util.Date;
 import java.util.List;
 
 @Service
 public class ClientService {
-    private final ClientRepository clientRepository;
-    private final EmailService emailService;
+        private final ProduitFeignClient produitFeignClient;
+        private final ClientRepository clientRepository;
+        private final EmailService emailService;
+        private final PasswordEncoder passwordEncoder;
 
-    public ClientService(ClientRepository clientRepository, EmailService emailService) {
-        this.clientRepository = clientRepository;
-        this.emailService = emailService;
+    public List<Produit> getAllProduits() {
+        return produitFeignClient.getAllProduits();
     }
-    public List<Client> getAllClients() {return clientRepository.findAll();}
+        public ClientService(ClientRepository clientRepository,
+                             EmailService emailService,
+                             ProduitFeignClient produitFeignClient,
+                             PasswordEncoder passwordEncoder) {
+            this.clientRepository = clientRepository;
+            this.emailService = emailService;
+            this.produitFeignClient = produitFeignClient;
+            this.passwordEncoder = passwordEncoder;
+        }
 
-    public Client getClientById(String idUser) {
-        return clientRepository.findById(idUser)
-                .orElseThrow(() -> new RuntimeException("Client not found"));}
+        //CREATE CLIENT
+        public Client createClient(Client client) {
 
-    public Client findByUserName(String userName) {return clientRepository.findByUserName(userName);}
+            client.setRole("ROLE_CLIENT");
+            client.setDateCreation(new Date());
+            client.setActive(true);
+            client.setRiskProfileScore(0.0);
+            client.setNombreSinistres(0);
+            client.setMontantTotalRembourse(0.0);
 
-    // Création d'un client + envoi d'email
-    public Client createClient(Client client) {
-        // Sauvegarde du client dans la BDD
-        Client savedClient = clientRepository.save(client);
+            // 🔐 Encodage password
+            client.setPassword(passwordEncoder.encode(client.getPassword()));
 
-        // Préparer le contenu du mail
-        String subject = "Bienvenue sur notre plateforme";
-        String body = "Bonjour " + client.getUserName() + ",\n\n" +
-                "Votre compte client a été créé avec succès.\n" +
-                "Email: " + client.getEmail() + "\n" +
-                "Mot de passe: " + client.getPassword() + "\n\n" +
-                "Cordialement,\nL'équipe.";
+            Client savedClient = clientRepository.save(client);
+            emailService.sendEmail(
+                    savedClient.getEmail(),
+                    "Bienvenue",
+                    "Votre compte a été créé avec succès."
+            );
 
-        // Envoi du mail
-        emailService.sendEmail(client.getEmail(), subject, body);
-        return savedClient;
+            return savedClient;
+        }
+        //  GET ALL
+        public List<Client> getAllClients() {
+            return clientRepository.findAll();
+        }
+
+        //  GET BY ID
+        public Client getClientById(String idUser) {
+            return clientRepository.findById(idUser)
+                    .orElseThrow(() -> new RuntimeException("Client not found"));
+        }
+        //  UPDATE
+        public Client updateClient(String idUser, Client clientDetails) {
+            Client client = getClientById(idUser);
+            client.setUserName(clientDetails.getUserName());
+            client.setEmail(clientDetails.getEmail());
+            client.setPhone(clientDetails.getPhone());
+            client.setCompanyName(clientDetails.getCompanyName());
+            client.setSecteurActivite(clientDetails.getSecteurActivite());
+            client.setChiffreAffaires(clientDetails.getChiffreAffaires());
+            client.setNombreEmployes(clientDetails.getNombreEmployes());
+            client.setAdresse(clientDetails.getAdresse());
+            client.setActive(clientDetails.getActive());
+            // 🔐 Si password modifié
+            if (clientDetails.getPassword() != null &&
+                    !clientDetails.getPassword().isEmpty()) {
+                client.setPassword(passwordEncoder.encode(clientDetails.getPassword()));
+            }
+
+            return clientRepository.save(client);
+        }
+
+        //  DELETE
+        public void deleteClient(String idUser) {
+            Client client = getClientById(idUser);
+            clientRepository.delete(client);
+        }
     }
-
-    // Mise à jour d'un client + envoi par mail
-
-    public Client updateClient(String idUser, Client clientDetails) {
-
-        Client existingClient = clientRepository.findById(idUser)
-                .orElseThrow(() -> new RuntimeException("Client non trouvé"));
-
-        existingClient.setUserName(clientDetails.getUserName());
-        existingClient.setEmail(clientDetails.getEmail());
-        existingClient.setPassword(clientDetails.getPassword());
-        existingClient.setPhone(clientDetails.getPhone());
-        existingClient.setCompanyName(clientDetails.getCompanyName());
-        existingClient.setActive(clientDetails.getActive());
-        Client savedClient = clientRepository.save(existingClient);
-
-        // Envoi du mail après modification
-        String subject = "Mise à jour de votre compte Client";
-        String body = "Bonjour " + savedClient.getUserName() + ",\n\n" +
-                "Votre compte a été mis à jour avec succès.\n\n" +
-                "Informations actuelles :\n" +
-                "Email: " + savedClient.getEmail() + "\n" +
-                "Téléphone: " + savedClient.getPhone() + "\n" +
-                "Société: " + savedClient.getCompanyName() + "\n\n" +
-                "Si vous n'êtes pas à l'origine de cette modification, contactez-nous.\n\n" +
-                "Cordialement,\nL'équipe.";
-
-        emailService.sendEmail(savedClient.getEmail(), subject, body);
-
-        return savedClient;
-    }
-
-     public void deleteClient(String idUser) {
-        Client client = getClientById(idUser);
-        clientRepository.delete(client);}
-
-    public Client save(Client client) {return clientRepository.save(client);}
-
-}

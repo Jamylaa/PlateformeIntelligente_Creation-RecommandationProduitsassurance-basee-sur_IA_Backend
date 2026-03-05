@@ -1,9 +1,7 @@
 package tn.vermeg.gestionuser.controllers;
-
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import tn.vermeg.gestionuser.entities.Admin;
-import tn.vermeg.gestionuser.entities.Client;
-import tn.vermeg.gestionuser.entities.Department;
 import tn.vermeg.gestionuser.services.AdminService;
 import org.springframework.web.bind.annotation.*;
 
@@ -14,46 +12,40 @@ import java.util.List;
 @CrossOrigin(origins = "http://localhost:4200")
 public class AdminController {
 
-    private final AdminService adminService;
-    public AdminController(AdminService adminService) {
-        this.adminService = adminService;
-    }
+        private final AdminService adminService;
 
-    @PostMapping("/createAdmin")
-    public Admin createAdmin(@RequestBody Admin admin) {
-        return adminService.createAdmin(admin); }
+        public AdminController(AdminService adminService) {
+            this.adminService = adminService;}
 
-    @GetMapping("/getAllAdmins")
-    public List<Admin> getAllAdmins() {
-        return adminService.getAllAdmins();
-    }
+        @PreAuthorize("hasRole('ADMIN')")
+        @PostMapping("/createAdmin")
+        public ResponseEntity<Admin> createAdmin(@RequestBody Admin admin) {
+            return ResponseEntity.ok(adminService.createAdmin(admin));
+        }
 
-    @GetMapping("getAdminById/{idUser}")
-    public Admin getAdminById(@PathVariable String idUser) {
-        return adminService.getAdminById(idUser);
+        @PreAuthorize("hasRole('ADMIN')")
+        @GetMapping("/getAllAdmins")
+        public ResponseEntity<List<Admin>> getAllAdmins() {
+            return ResponseEntity.ok(adminService.getAllAdmins());
+        }
+
+        @PreAuthorize("hasRole('ADMIN')")
+        @GetMapping("/getAdminById/{idUser}")
+        public ResponseEntity<Admin> getAdminById(@PathVariable String idUser) {
+            return ResponseEntity.ok(adminService.getAdminById(idUser));}
+
+        @PreAuthorize("hasRole('ADMIN')")
+        @PutMapping("/updateAdmin/{idUser}")
+        public ResponseEntity<Admin> updateAdmin(
+                @PathVariable String idUser,
+                @RequestBody Admin admin) {
+            return ResponseEntity.ok(adminService.updateAdmin(idUser, admin));
+        }
+
+        @PreAuthorize("hasRole('ADMIN')")
+        @DeleteMapping("/deleteAdmin/{idUser}")
+        public ResponseEntity<String> deleteAdmin(@PathVariable String idUser) {
+            adminService.deleteAdmin(idUser);
+            return ResponseEntity.ok("Admin supprimé avec succès !");
+        }
     }
-    // Mise à jour avec un objet Admin complet
-    @PutMapping("/updateAdmin/{idUser}")
-    public ResponseEntity<Admin> updateAdmin(
-            @PathVariable String idUser,
-            @RequestBody Admin admin) {
-        Admin updatedAdmin = adminService.updateAdmin(idUser, admin);
-        return ResponseEntity.ok(updatedAdmin);
-    }
-    //delete
-    @DeleteMapping("deleteAdmin/{idUser}")
-    public ResponseEntity<String> deleteAdmin(@PathVariable String idUser) {
-        adminService.deleteAdmin(idUser);
-        return ResponseEntity.ok("Admin supprimé avec succès !");
-    }
-}
-//    public Admin updateAdmin(
-//            @PathVariable String idUser,
-//            @RequestParam String userName,
-//            @RequestParam String email,
-//            @RequestParam String password,
-//            @RequestParam int phone,
-//            @RequestParam Department department
-//    ) {
-//        return adminService.updateAdmin(idUser, userName, email, password, phone, department);
-//    }

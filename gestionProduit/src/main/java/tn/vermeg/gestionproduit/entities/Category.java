@@ -1,5 +1,3 @@
 package tn.vermeg.gestionproduit.entities;
 
-public enum Category {
-    sante,habitation, auto
-}
+public enum Category { sante,habitation, auto}
